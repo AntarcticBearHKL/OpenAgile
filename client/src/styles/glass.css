@@ -1,0 +1,16 @@
+/* ==========================================================================
+   Glass fallback
+   Imported last: without backdrop-filter the frosted layers would show the dot
+   grid through them, so every glass surface falls back to opaque cocoa paper.
+   ========================================================================== */
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .controls,
+  .board-sidebar,
+  .task-column,
+  .modal-content,
+  .modal-content .form-actions,
+  .spotlight-panel {
+    background-color: var(--glass-bg-opaque);
+  }
+}

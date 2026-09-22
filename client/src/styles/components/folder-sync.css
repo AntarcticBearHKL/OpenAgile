@@ -1,0 +1,88 @@
+/* ==========================================================================
+   Folder sync control (settings modal) — mirrors the header sync indicator's
+   four states: linked / pending / error / unlinked.
+   ========================================================================== */
+
+.folder-sync-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.folder-sync-actions .btn {
+  border: 1px solid var(--border);
+  background-color: var(--primary-soft);
+  font-size: var(--text-sm);
+  padding: 8px 14px;
+}
+
+.folder-sync-actions .btn:hover {
+  background-color: var(--item-selected);
+}
+
+.folder-sync-actions .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.folder-sync-actions .btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* `.btn`'s author display beats the UA [hidden] rule, so restate it here */
+.folder-sync-actions .btn[hidden] {
+  display: none;
+}
+
+.folder-sync-unsupported {
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.folder-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.folder-sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex: none;
+}
+
+.folder-sync-status--unlinked {
+  color: var(--sync-offline-fg);
+  background-color: var(--sync-offline-bg);
+  border-color: var(--sync-offline-border);
+}
+
+.folder-sync-status--linked {
+  color: var(--sync-live-fg);
+  background-color: var(--sync-live-bg);
+  border-color: var(--sync-live-border);
+}
+
+.folder-sync-status--pending {
+  color: var(--sync-syncing-fg);
+  background-color: var(--sync-syncing-bg);
+  border-color: var(--sync-syncing-border);
+}
+
+.folder-sync-status--error {
+  color: var(--sync-unsynced-fg);
+  background-color: var(--sync-unsynced-bg);
+  border-color: var(--sync-unsynced-border);
+}

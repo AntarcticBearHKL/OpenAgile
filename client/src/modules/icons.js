@@ -1,0 +1,112 @@
+/**
+ * Lucide Icons - Tree-shakeable import
+ * Only imports icons used in the application for optimal bundle size.
+ */
+import {
+  createIcons,
+  SquareKanban,
+  Kanban,
+  Search,
+  Plus,
+  Settings,
+  Columns3,
+  Tag,
+  SlidersHorizontal,
+  Download,
+  Upload,
+  Moon,
+  Sun,
+  HelpCircle,
+  EllipsisVertical,
+  Trash2,
+  GripVertical,
+  Pencil,
+  Fullscreen,
+  ChartColumn,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRightLeft,
+  ArrowUpDown,
+  X,
+  Maximize2,
+  Minimize2,
+  Rows3,
+  GitBranch,
+  History,
+  Cloud,
+  RefreshCw,
+  LogOut,
+  Chrome,
+  Apple,
+  LayoutGrid,
+  Scale,
+  ListChecks,
+  Sparkles,
+  Bot,
+  MessageSquare,
+  Ban,
+  CheckSquare,
+  Paperclip,
+  Settings2
+} from 'lucide';
+
+// Map of all icons used in the app (PascalCase keys for createIcons)
+const icons = {
+  SquareKanban,
+  Kanban,
+  Search,
+  Plus,
+  Settings,
+  Columns3,
+  Tag,
+  SlidersHorizontal,
+  Download,
+  Upload,
+  Moon,
+  Sun,
+  HelpCircle,
+  EllipsisVertical,
+  Trash2,
+  GripVertical,
+  Pencil,
+  Fullscreen,
+  ChartColumn,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRightLeft,
+  ArrowUpDown,
+  X,
+  Maximize2,
+  Minimize2,
+  Rows3,
+  GitBranch,
+  History,
+  Cloud,
+  RefreshCw,
+  LogOut,
+  Chrome,
+  Apple,
+  LayoutGrid,
+  Scale,
+  ListChecks,
+  Sparkles,
+  Bot,
+  MessageSquare,
+  Ban,
+  CheckSquare,
+  Paperclip,
+  Settings2
+};
+
+/**
+ * Renders all Lucide icons in the DOM.
+ * Call this after dynamically adding elements with data-lucide attributes.
+ */
+export function renderIcons() {
+  createIcons({ icons });
+}
+
+// Initialize icons on module load for static HTML elements
+renderIcons();

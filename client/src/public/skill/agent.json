@@ -1,0 +1,9 @@
+{
+  "protocolVersion": 1,
+  "skillVersion": "1.0.0",
+  "mcpEndpointHint": "http://127.0.0.1:8787/mcp",
+  "docs": {
+    "skill": "./openagile.md",
+    "agent": "./agent.json"
+  }
+}

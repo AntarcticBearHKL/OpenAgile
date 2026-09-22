@@ -1,0 +1,207 @@
+/* ==========================================================================
+   Skills editor modal
+   ========================================================================== */
+
+.skills-modal-content {
+  max-width: var(--skills-modal-width);
+  padding-bottom: 0;
+}
+
+.skills-layout {
+  display: flex;
+  align-items: stretch;
+  min-height: var(--skills-layout-height);
+}
+
+.skills-list-pane {
+  flex: 0 0 var(--skills-pane-width);
+  width: var(--skills-pane-width);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--glass-border);
+  padding-right: var(--space-4);
+  max-height: 62vh;
+}
+
+.skills-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.skills-list-heading {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.skills-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.skill-item {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  min-width: 0;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.skill-item:hover {
+  background-color: var(--row-hover);
+}
+
+.skill-item--active {
+  background-color: var(--item-selected);
+  border-color: var(--border);
+}
+
+.skill-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.skill-item-name {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-item-description {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skills-editor-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--space-5);
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.skills-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.skills-empty-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.skills-empty-hint {
+  margin: 0;
+  max-width: 340px;
+  font-size: var(--text-md);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.skills-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.skills-content-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.skills-content-group textarea {
+  flex: 1;
+  min-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: var(--text-md);
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.skills-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-bottom: var(--space-5);
+}
+
+.skills-delete-btn {
+  min-width: 88px;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.skills-delete-btn:hover {
+  background-color: var(--color-danger-bg);
+}
+
+.skills-delete-btn.is-armed {
+  background-color: var(--color-danger);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .skills-layout {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .skills-list-pane {
+    flex: 0 0 auto;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: var(--space-3);
+    max-height: 220px;
+  }
+
+  .skills-editor-pane {
+    padding-left: 0;
+    padding-top: var(--space-4);
+    max-height: none;
+  }
+
+  .skills-content-group textarea {
+    min-height: 160px;
+  }
+}

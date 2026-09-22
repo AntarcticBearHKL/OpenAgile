@@ -1,0 +1,97 @@
+// Shared normalizers and validators — eliminates duplication across modules.
+
+import { DEFAULT_COLUMN_COLOR, DONE_COLUMN_ID } from './constants.js';
+
+/**
+ * Check whether a string is a valid hex color (#abc or #aabbcc).
+ */
+export function isHexColor(value) {
+  return typeof value === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+}
+
+/**
+ * Normalize a hex color value, falling back to DEFAULT_COLUMN_COLOR.
+ */
+export function normalizeHexColor(value, fallback = DEFAULT_COLUMN_COLOR) {
+  return isHexColor(value) ? value.trim() : fallback;
+}
+
+/**
+ * Display name for a board object, falling back to 'Untitled board'.
+ */
+export function boardDisplayName(board) {
+  const name = typeof board?.name === 'string' ? board.name.trim() : '';
+  return name || 'Untitled board';
+}
+
+export function normalizeActivityLog(input) {
+  if (!Array.isArray(input)) return [];
+  return input.filter((entry) => (
+    entry &&
+    typeof entry === 'object' &&
+    typeof entry.type === 'string' &&
+    entry.type.trim() !== '' &&
+    typeof entry.at === 'string' &&
+    entry.at.length > 0 &&
+    // Use Date.parse rather than a strict regex so that valid ISO 8601 variants
+    // (e.g. +00:00 offset, microsecond precision) are accepted without being
+    // rejected by an overly narrow pattern.
+    Number.isFinite(Date.parse(entry.at)) &&
+    entry.actor &&
+    typeof entry.actor === 'object' &&
+    !Array.isArray(entry.actor) &&
+    (
+      (entry.actor.type === 'human' && entry.actor.id === null) ||
+      ((entry.actor.type === 'agent' || entry.actor.type === 'user') && typeof entry.actor.id === 'string' && entry.actor.id.trim() !== '')
+    ) &&
+    entry.details &&
+    typeof entry.details === 'object' &&
+    !Array.isArray(entry.details)
+  ));
+}
+
+const RELATIONSHIP_TYPES = new Set(['prerequisite', 'dependent', 'related']);
+
+/**
+ * Normalize a relationships array.
+ * Filters invalid entries and deduplicates by targetTaskId (first occurrence kept).
+ */
+export function normalizeRelationships(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  return value.filter((entry) => {
+    if (!entry || typeof entry !== 'object') return false;
+    const type = (entry.type || '').toString().trim();
+    const targetTaskId = (entry.targetTaskId || '').toString().trim();
+    if (!RELATIONSHIP_TYPES.has(type) || !targetTaskId) return false;
+    if (seen.has(targetTaskId)) return false;
+    seen.add(targetTaskId);
+    return true;
+  });
+}
+
+/**
+ * Returns the default accent color for a column by its id.
+ */
+export function defaultColumnColor(id) {
+  if (id === 'todo') return '#3b82f6';
+  if (id === 'inprogress') return '#f59e0b';
+  if (id === DONE_COLUMN_ID) return '#16a34a';
+  return DEFAULT_COLUMN_COLOR;
+}
+
+/**
+ * Deduplicate an array of string keys, trimming whitespace.
+ */
+export function normalizeStringKeys(keys) {
+  if (!Array.isArray(keys)) return [];
+
+  const seen = new Set();
+  return keys
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter((entry) => {
+      if (!entry || seen.has(entry)) return false;
+      seen.add(entry);
+      return true;
+    });
+}

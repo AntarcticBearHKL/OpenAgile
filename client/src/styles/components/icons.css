@@ -1,0 +1,74 @@
+/* ==========================================================================
+   Icon Button Components
+   ========================================================================== */
+
+/* Base icon button pattern (task-row actions) */
+.icon-btn,
+.delete-task-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+  transition: opacity var(--transition-normal), background-color var(--transition-normal);
+}
+
+.icon-btn:hover,
+.delete-task-btn:hover {
+  opacity: 1;
+}
+
+.icon-btn svg,
+.delete-task-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* Delete task button */
+.delete-task-btn {
+  box-sizing: border-box;
+  width: var(--board-control-size-compact);
+  height: var(--board-control-size-compact);
+  padding: 0;
+}
+
+.delete-task-btn:hover {
+  background-color: var(--color-danger-bg);
+}
+
+.delete-task-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.delete-task-btn svg {
+  stroke: var(--color-danger);
+}
+
+/* ==========================================================================
+   Phone: icon buttons become 44px tap targets
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .icon-btn,
+  .delete-task-btn {
+    opacity: 1;
+  }
+
+  .icon-btn {
+    width: var(--touch-target);
+    height: var(--touch-target);
+    padding: 0;
+  }
+
+  .icon-btn svg,
+  .delete-task-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}

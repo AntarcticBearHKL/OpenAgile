@@ -1,0 +1,443 @@
+/**
+ * IDB-layer tests for storage.js.
+ *
+ * These tests exercise the paths that the unit tests in storage.test.js cannot:
+ *   - initStorage() loading state from an IDB database
+ *   - Both localStorage → IDB migration paths (multi-board and legacy single-board)
+ *   - Cross-session persistence: write in session A, reload in session B
+ *   - deleteBoard cleaning up IDB entries
+ *   - The loadXxxForBoard() cross-board read helpers
+ *
+ * Each test gets a completely fresh IDB and localStorage via beforeEach.
+ */
+
+import { test, expect, beforeEach } from 'vitest';
+import { deleteDB, openDB } from 'idb';
+import { resetLocalStorage } from './setup.js';
+import {
+  initStorage,
+  _resetStorageForTesting,
+  _flushPersistsForTesting,
+  ensureBoardsInitialized,
+  createBoard,
+  listBoards,
+  deleteBoard,
+  getActiveBoardId,
+  setActiveBoardId,
+  loadTasks,
+  saveTasks,
+  loadColumns,
+  saveColumns,
+  loadSettings,
+  saveSettings,
+  loadTasksForBoard,
+  loadColumnsForBoard,
+  loadSettingsForBoard,
+} from '../../src/modules/storage.js';
+import { openStore } from '../../src/modules/idb-store.js';
+import { scheduleDomainEvent } from '../../src/modules/event-sourcing/emitter.js';
+
+const DB_NAME = 'openagile-db';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+beforeEach(async () => {
+  // Reset in-memory state (also closes DB connection so deleteDB is not blocked).
+  resetLocalStorage();
+  // Wipe the fake IDB so every test starts with a completely empty database.
+  await deleteDB(DB_NAME);
+});
+
+// ── initStorage: fresh-start behaviour ──────────────────────────────────────────
+
+test('initStorage on empty IDB leaves boards list empty', async () => {
+  await initStorage();
+  expect(listBoards()).toEqual([]);
+});
+
+test('initStorage creates a stable HLC node id on boot', async () => {
+  await initStorage();
+  const db = await openStore();
+  expect(await db.get('kv', 'openagile:hlc:node')).toMatch(UUID_RE);
+});
+
+test('initStorage is safe to call twice in the same session', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const boardsAfterFirst = listBoards().length;
+
+  await initStorage(); // second call: should not duplicate boards
+  expect(listBoards().length).toBe(boardsAfterFirst);
+});
+
+// ── cross-session persistence ────────────────────────────────────────────────────
+
+test('saveTasks persists to IDB and survives a session reset', async () => {
+  // Session 1: write tasks
+  await initStorage();
+  ensureBoardsInitialized();
+  saveTasks([{ id: 't1', title: 'Persisted task', column: 'todo', priority: 'none', order: 1 }]);
+
+  await _flushPersistsForTesting();
+  const boardId = getActiveBoardId();
+  _resetStorageForTesting(); // drop in-memory state, IDB intact
+
+  // Session 2: load from IDB
+  await initStorage();
+  setActiveBoardId(boardId);
+  const tasks = loadTasks();
+  expect(tasks.some(t => t.title === 'Persisted task')).toBe(true);
+});
+
+test('emitted task.updated events project into task read model', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const boardId = getActiveBoardId();
+  saveTasks([{ id: 'task-a', title: 'Before', column: 'todo', priority: 'none', order: 1 }]);
+
+  scheduleDomainEvent({
+    type: 'task.updated',
+    boardId,
+    entityId: 'task-a',
+    payload: { fields: { title: 'After' } }
+  });
+  await _flushPersistsForTesting();
+
+  expect(loadTasks()[0].title).toBe('After');
+
+  const db = await openStore();
+  expect((await db.get('read_model', `${boardId}:tasks`))[0].title).toBe('After');
+});
+
+test('saveColumns persists to IDB and survives a session reset', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  saveColumns([
+    { id: 'review', name: 'Review', color: '#aabbcc', order: 1, collapsed: false },
+    { id: 'done',   name: 'Done',   color: '#505050', order: 2, collapsed: false },
+  ]);
+
+  await _flushPersistsForTesting();
+  const boardId = getActiveBoardId();
+  _resetStorageForTesting();
+
+  await initStorage();
+  setActiveBoardId(boardId);
+  const columns = loadColumns();
+  expect(columns.map((c) => c.name)).toEqual(['Backlog', 'Human In The Loop', 'In Progress', 'Blocked', 'Finished']);
+});
+
+test('saveSettings persists to IDB and survives a session reset', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  saveSettings({ showChangeDate: true });
+
+  await _flushPersistsForTesting();
+  const boardId = getActiveBoardId();
+  _resetStorageForTesting();
+
+  await initStorage();
+  setActiveBoardId(boardId);
+  const settings = loadSettings();
+  expect(settings.showChangeDate).toBe(true);
+});
+
+test('createBoard persists board list and per-board defaults across sessions', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const board = createBoard('Persisted Board');
+  saveTasks([{ id: 't1', title: 'Board task', column: 'todo', priority: 'none', order: 1 }]);
+
+  await _flushPersistsForTesting();
+  _resetStorageForTesting();
+
+  await initStorage();
+  expect(listBoards().some(b => b.id === board.id && b.name === 'Persisted Board')).toBe(true);
+  setActiveBoardId(board.id);
+  expect(loadTasks().some(t => t.title === 'Board task')).toBe(true);
+});
+
+test('active board id persists across sessions', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const b = createBoard('Switch Target');
+  setActiveBoardId(b.id);
+
+  await _flushPersistsForTesting();
+  _resetStorageForTesting();
+
+  await initStorage();
+  expect(getActiveBoardId()).toBe(b.id);
+});
+
+// ── deleteBoard cleans up IDB ─────────────────────────────────────────────────────
+
+test('deleteBoard removes per-board data from IDB', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const defaultId = getActiveBoardId();
+  const other = createBoard('Doomed');
+  setActiveBoardId(other.id);
+  saveTasks([{ id: 't1', title: 'Doomed task', column: 'todo', priority: 'none', order: 1 }]);
+
+  await _flushPersistsForTesting();
+
+  setActiveBoardId(defaultId);
+  deleteBoard(other.id);
+  await _flushPersistsForTesting();
+  _resetStorageForTesting();
+
+  await initStorage();
+  expect(listBoards().some(b => b.id === other.id)).toBe(false);
+  // Board-scoped helpers should return empty arrays for the deleted board.
+  expect(loadTasksForBoard(other.id)).toEqual([]);
+  expect(loadColumnsForBoard(other.id)).toEqual([]);
+});
+
+test('v2 migration rehomes board read models and removes legacy kv keys', async () => {
+  const boardId = '11111111-1111-4111-8111-111111111111';
+  const taskId = '22222222-2222-4222-8222-222222222222';
+  const columnId = '33333333-3333-4333-8333-333333333333';
+  const db = await openDB(DB_NAME, 1, { upgrade(d) { d.createObjectStore('kv'); } });
+  await db.put('kv', [{ id: boardId, name: 'Alpha', createdAt: '2024-01-01T00:00:00Z' }], 'kanbanBoards');
+  await db.put('kv', boardId, 'kanbanActiveBoardId');
+  await db.put('kv', [{ id: taskId, title: 'Task A' }], `kanbanBoard:${boardId}:tasks`);
+  await db.put('kv', [{ id: columnId, name: 'Column A' }], `kanbanBoard:${boardId}:columns`);
+  db.close();
+
+  const upgraded = await openStore();
+  expect(await upgraded.get('read_model', `${boardId}:tasks`)).toEqual([{ id: taskId, title: 'Task A' }]);
+  expect(await upgraded.get('read_model', `${boardId}:columns`)).toEqual([{ id: columnId, name: 'Column A' }]);
+  expect(await upgraded.get('kv', `kanbanBoard:${boardId}:tasks`)).toBeUndefined();
+  expect(await upgraded.get('kv', `kanbanBoard:${boardId}:columns`)).toBeUndefined();
+});
+
+test('v2 migration deletes legacy board event logs', async () => {
+  const db = await openDB(DB_NAME, 1, { upgrade(d) { d.createObjectStore('kv'); } });
+  await db.put('kv', [{ localTaskId: 'task-a', boardId: 'board-a' }], 'pendingHardDeletes');
+  await db.put('kv', [{ id: 'event-a', type: 'task.deleted' }], 'events:board-a');
+  db.close();
+
+  const upgraded = await openStore();
+  expect(await upgraded.get('kv', 'pendingHardDeletes')).toEqual([{ localTaskId: 'task-a', boardId: 'board-a' }]);
+  expect(await upgraded.get('kv', 'events:board-a')).toBeUndefined();
+});
+
+test('v2 schema creates event sourcing stores and event indexes', async () => {
+  const db = await openStore();
+
+  expect([...db.objectStoreNames]).toEqual(['events', 'kv', 'read_model', 'snapshots']);
+
+  const tx = db.transaction('events', 'readonly');
+  expect([...tx.objectStore('events').indexNames]).toEqual(['hlc', 'synced']);
+  await tx.done;
+});
+
+// ── localStorage → IDB migration ─────────────────────────────────────────────────
+
+test('migrates multi-board localStorage data on first initStorage', async () => {
+  localStorage.setItem('kanbanBoards', JSON.stringify([
+    { id: 'board-a', name: 'Alpha', createdAt: '2024-01-01T00:00:00Z' },
+  ]));
+  localStorage.setItem('kanbanActiveBoardId', 'board-a');
+  localStorage.setItem('kanbanBoard:board-a:tasks', JSON.stringify([
+    { id: 't1', title: 'Migrated', column: 'todo', priority: 'none', order: 1 },
+  ]));
+  localStorage.setItem('kanbanBoard:board-a:columns', JSON.stringify([
+    { id: 'todo', name: 'To Do', color: '#3b82f6', order: 1, collapsed: false },
+    { id: 'done', name: 'Done', color: '#505050', order: 2, collapsed: false },
+  ]));
+
+  await initStorage();
+
+  expect(listBoards().length).toBe(1);
+  expect(listBoards()[0].name).toBe('Alpha');
+  expect(getActiveBoardId()).toMatch(UUID_RE);
+  const columns = loadColumns();
+  const backlogColumn = columns.find((column) => column.name === 'Backlog');
+  const doneColumn = columns.find((column) => column.role === 'done');
+  expect(backlogColumn?.id).toMatch(UUID_RE);
+  expect(doneColumn?.id).toMatch(UUID_RE);
+  expect(loadTasks().some(t => t.title === 'Migrated' && t.column === backlogColumn.id)).toBe(true);
+});
+
+test('migrates legacy done id to a UUID done role and rewrites task references', async () => {
+  localStorage.setItem('kanbanBoards', JSON.stringify([
+    { id: 'board-a', name: 'Alpha', createdAt: '2024-01-01T00:00:00Z' },
+  ]));
+  localStorage.setItem('kanbanActiveBoardId', 'board-a');
+  localStorage.setItem('kanbanBoard:board-a:tasks', JSON.stringify([
+    {
+      id: 'task-a',
+      title: 'Done migrated',
+      column: 'done',
+      priority: 'none',
+      order: 1,
+      labels: ['label-a'],
+      columnHistory: [{ column: 'done', at: '2024-01-01T00:00:00Z' }]
+    },
+  ]));
+  localStorage.setItem('kanbanBoard:board-a:columns', JSON.stringify([
+    { id: 'todo', name: 'To Do', color: '#3b82f6', order: 1, collapsed: false },
+    { id: 'done', name: 'Done', color: '#505050', order: 2, collapsed: false },
+  ]));
+
+  await initStorage();
+
+  const doneColumn = loadColumns().find((column) => column.role === 'done');
+  const task = loadTasks().find((entry) => entry.title === 'Done migrated');
+  expect(doneColumn?.id).toMatch(UUID_RE);
+  expect(task?.id).toMatch(UUID_RE);
+  expect(task?.column).toBe(doneColumn.id);
+  expect(task?.columnHistory?.[0]?.column).toBe(doneColumn.id);
+  expect(task?.labels).toBeUndefined();
+});
+
+test('migration cleans up localStorage after completing', async () => {
+  localStorage.setItem('kanbanBoards', JSON.stringify([
+    { id: 'board-a', name: 'Alpha', createdAt: '2024-01-01T00:00:00Z' },
+  ]));
+  localStorage.setItem('kanbanActiveBoardId', 'board-a');
+  localStorage.setItem('kanbanBoard:board-a:tasks', JSON.stringify([]));
+  localStorage.setItem('kanbanBoard:board-a:columns', JSON.stringify([
+    { id: 'done', name: 'Done', color: '#505050', order: 1, collapsed: false },
+  ]));
+
+  await initStorage();
+
+  expect(localStorage.getItem('kanbanBoards')).toBeNull();
+  expect(localStorage.getItem('kanbanActiveBoardId')).toBeNull();
+  expect(localStorage.getItem('kanbanBoard:board-a:tasks')).toBeNull();
+  expect(localStorage.getItem('kanbanBoard:board-a:columns')).toBeNull();
+});
+
+test('migrates legacy single-board localStorage keys (pre-multi-board format)', async () => {
+  // Oldest format: no kanbanBoards key, data stored in kanbanTasks / kanbanColumns.
+  localStorage.setItem('kanbanTasks', JSON.stringify([
+    { id: 't1', title: 'Legacy task', column: 'todo', priority: 'none', order: 1 },
+  ]));
+  localStorage.setItem('kanbanColumns', JSON.stringify([
+    { id: 'todo', name: 'To Do', color: '#3b82f6', order: 1, collapsed: false },
+    { id: 'done', name: 'Done', color: '#505050', order: 2, collapsed: false },
+  ]));
+
+  await initStorage();
+
+  expect(listBoards().length).toBe(1);
+  expect(loadTasks().some(t => t.title === 'Legacy task')).toBe(true);
+
+  // Legacy keys should be gone.
+  expect(localStorage.getItem('kanbanTasks')).toBeNull();
+  expect(localStorage.getItem('kanbanColumns')).toBeNull();
+});
+
+test('migrates legacy single-board tasks without columns using UUID default column mappings', async () => {
+  localStorage.setItem('kanbanTasks', JSON.stringify([
+    { id: 'task-done', title: 'Legacy done task', column: 'done', priority: 'none', order: 1, changeDate: '2024-01-01T00:00:00Z', columnHistory: [{ column: 'done', at: '2024-01-01T00:00:00Z' }] },
+    { id: 'task-todo', title: 'Legacy todo task', column: 'todo', priority: 'none', order: 2 },
+  ]));
+
+  await initStorage();
+
+  const columns = loadColumns();
+  const doneColumn = columns.find((column) => column.role === 'done');
+  const todoColumn = columns.find((column) => column.name === 'Backlog');
+  const tasks = loadTasks();
+  const doneTask = tasks.find((task) => task.title === 'Legacy done task');
+  const todoTask = tasks.find((task) => task.title === 'Legacy todo task');
+  expect(doneColumn?.id).toMatch(UUID_RE);
+  expect(todoColumn?.id).toMatch(UUID_RE);
+  expect(doneTask?.column).toBe(doneColumn.id);
+  expect(doneTask?.columnHistory?.[0]?.column).toBe(doneColumn.id);
+  expect(doneTask?.doneDate).toBeTruthy();
+  expect(todoTask?.column).toBe(todoColumn.id);
+});
+
+test('migration does not run again on a subsequent initStorage call (same IDB)', async () => {
+  localStorage.setItem('kanbanBoards', JSON.stringify([
+    { id: 'board-a', name: 'Alpha', createdAt: '2024-01-01T00:00:00Z' },
+  ]));
+  localStorage.setItem('kanbanActiveBoardId', 'board-a');
+  localStorage.setItem('kanbanBoard:board-a:tasks', JSON.stringify([]));
+  localStorage.setItem('kanbanBoard:board-a:columns', JSON.stringify([
+    { id: 'done', name: 'Done', color: '#505050', order: 1, collapsed: false },
+  ]));
+
+  await initStorage(); // Session 1: migrates, clears localStorage
+
+  _resetStorageForTesting(); // simulate new session (IDB kept, localStorage already empty)
+  await initStorage(); // Session 2: loads from IDB
+
+  expect(listBoards().length).toBe(1);
+  expect(listBoards()[0].name).toBe('Alpha');
+});
+
+test('initStorage with corrupt kanbanBoards in IDB yields empty boards list', async () => {
+  // Manually write a non-array to the IDB boards key to simulate corruption.
+  const db = await openDB(DB_NAME, 1, { upgrade(d) { d.createObjectStore('kv'); } });
+  await db.put('kv', 'not-an-array', 'kanbanBoards');
+  db.close();
+
+  await initStorage();
+
+  // state.boards will be 'not-an-array' but listBoards() guards with Array.isArray.
+  expect(listBoards()).toEqual([]);
+});
+
+// ── cross-board read helpers ───────────────────────────────────────────────────────
+
+test('loadTasksForBoard reads tasks for a non-active board without changing active board', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const defaultId = getActiveBoardId();
+  const other = createBoard('Other');
+
+  setActiveBoardId(other.id);
+  saveTasks([{ id: 'o1', title: 'Other task', column: 'todo', priority: 'none', order: 1 }]);
+
+  // Switch back to default before the assertion.
+  setActiveBoardId(defaultId);
+
+  const tasks = loadTasksForBoard(other.id);
+  expect(tasks.some(t => t.id === 'o1')).toBe(true);
+  expect(getActiveBoardId()).toBe(defaultId); // active board must be unchanged
+});
+
+test('loadColumnsForBoard reads columns for a non-active board', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const defaultId = getActiveBoardId();
+  const other = createBoard('Other');
+
+  setActiveBoardId(other.id);
+  saveColumns([
+    { id: 'special', name: 'Special', color: '#ff0000', order: 1, collapsed: false },
+    { id: 'done',    name: 'Done',    color: '#505050', order: 2, collapsed: false },
+  ]);
+
+  setActiveBoardId(defaultId);
+
+  const columns = loadColumnsForBoard(other.id);
+  expect(columns.some(c => c.id === 'special')).toBe(true);
+  expect(getActiveBoardId()).toBe(defaultId);
+});
+
+test('loadSettingsForBoard reads settings for a non-active board', async () => {
+  await initStorage();
+  ensureBoardsInitialized();
+  const defaultId = getActiveBoardId();
+  const other = createBoard('Other');
+
+  setActiveBoardId(other.id);
+  saveSettings({ showChangeDate: false });
+
+  setActiveBoardId(defaultId);
+
+  const settings = loadSettingsForBoard(other.id);
+  expect(settings?.showChangeDate).toBe(false);
+  expect(getActiveBoardId()).toBe(defaultId);
+});
+
+test('loadTasksForBoard returns empty array for unknown board id', async () => {
+  await initStorage();
+  expect(loadTasksForBoard('non-existent-board')).toEqual([]);
+});

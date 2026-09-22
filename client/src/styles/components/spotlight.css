@@ -1,0 +1,170 @@
+.spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16vh var(--space-4) var(--space-4);
+  background: var(--overlay-bg);
+  backdrop-filter: blur(2px);
+}
+
+.spotlight.hidden {
+  display: none;
+}
+
+.spotlight-panel {
+  width: 100%;
+  max-width: 640px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-popover);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.spotlight-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--row-divider);
+  color: var(--text-muted);
+}
+
+.spotlight-field svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  flex: 0 0 auto;
+}
+
+.spotlight-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--text-lg);
+  font-family: inherit;
+  outline: none;
+}
+
+.spotlight-field input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.spotlight-results {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  max-height: 46vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spotlight-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text);
+}
+
+.spotlight-item.is-active {
+  background: var(--item-selected);
+}
+
+.spotlight-key {
+  flex: 0 0 auto;
+  min-width: 46px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.spotlight-title {
+  flex: 0 1 auto;
+  font-size: var(--text-base);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-meta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-hint {
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Phone: the palette becomes a top sheet
+   Anchoring to the top keeps the field above the on-screen keyboard and
+   leaves the rest of the screen to the results.
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .spotlight {
+    align-items: flex-start;
+    padding: 0;
+  }
+
+  .spotlight-panel {
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    max-height: calc(100dvh - env(safe-area-inset-top));
+    border-top: 0;
+    border-radius: 0 0 var(--radius-sheet) var(--radius-sheet);
+  }
+
+  .spotlight-field {
+    gap: var(--space-2);
+    padding: calc(env(safe-area-inset-top) + var(--space-3)) var(--space-3) var(--space-3);
+  }
+
+  .spotlight-field svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .spotlight-field input {
+    font-size: var(--text-base);
+  }
+
+  .spotlight-results {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--space-2) var(--space-2) calc(env(safe-area-inset-bottom) + var(--space-2));
+  }
+
+  .spotlight-item {
+    align-items: center;
+    min-height: var(--touch-target);
+  }
+
+  .spotlight-key {
+    min-width: 52px;
+  }
+}

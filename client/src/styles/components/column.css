@@ -1,0 +1,224 @@
+/* ==========================================================================
+   Column Components
+   ========================================================================== */
+
+/* --- Column Card --- */
+
+.task-column {
+  /* Column accent (can be overridden via inline style). Decorative use stays
+     low-chroma via --text-faint; hover text mixes with --text to keep contrast. */
+  --column-accent: var(--column-accent-default);
+  --column-accent-muted: color-mix(in srgb, var(--column-accent) 32%, var(--text-faint));
+  --column-accent-hover: color-mix(in srgb, var(--column-accent) 60%, var(--text));
+
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 0;
+  margin: 0 0 0 -1px;
+  padding: 0;
+  flex: 1 1 var(--column-min-width);
+  width: auto;
+  min-width: var(--column-min-width);
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  display: flex;
+  flex-direction: column;
+  min-height: var(--column-min-height);
+  transition:
+    border-color var(--transition-normal),
+    background-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal);
+}
+
+.task-column:first-child {
+  margin-left: 0;
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+
+.task-column:last-child {
+  border-top-right-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+.task-column::before {
+  display: none;
+}
+
+/* Fallback accent colors (nth-child) — warm, low-chroma, cocoa-compatible */
+#board-container > .task-column:nth-child(3n + 1) { --column-accent: var(--column-accent-default); }
+#board-container > .task-column:nth-child(3n + 2) { --column-accent: #bd9a63; }
+#board-container > .task-column:nth-child(3n + 3) { --column-accent: #8fa88f; }
+
+/* Column header */
+.column-header {
+  display: flex;
+  align-items: center;
+  gap: var(--board-control-gap);
+  margin-bottom: 0;
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
+  border-bottom: 1px solid var(--glass-border);
+  cursor: default;
+  user-select: none;
+}
+
+.column-header * {
+  cursor: inherit;
+}
+
+.column-header button,
+.column-header a {
+  cursor: pointer;
+}
+
+.column-header h2 {
+  margin: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: left;
+  min-width: 0;
+  /* Two lines: the longest fixed name wraps at the 170px column floor */
+  min-height: calc(2lh);
+}
+
+.column-header h2::before {
+  content: "";
+  width: var(--column-header-dot-size);
+  height: var(--column-header-dot-size);
+  border-radius: 50%;
+  background: var(--column-accent-muted);
+  flex: 0 0 auto;
+}
+
+/* Reserved on all five columns so the Human In The Loop button changes no geometry */
+.column-header-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--board-control-size);
+  height: var(--board-control-size);
+}
+
+/* Tasks list — one compact row per task, no card chrome */
+.tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.task-column > .tasks:empty::after {
+  content: "No tasks yet";
+  display: block;
+  padding: var(--space-4) var(--space-3);
+  padding-left: calc(var(--space-3) + var(--column-header-dot-size) + var(--space-2));
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.add-task-btn-icon {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--board-control-size);
+  height: var(--board-control-size);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--board-control-radius);
+  background-color: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  flex: 0 0 auto;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.add-task-btn-icon svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  stroke-width: 2;
+}
+
+.add-task-btn-icon {
+  background-color: var(--board-control-surface);
+  border-color: var(--board-control-border);
+}
+
+.add-task-btn-icon:hover {
+  background-color: var(--item-hover);
+  border-color: var(--column-accent-hover);
+  color: var(--column-accent-hover);
+}
+
+.add-task-btn-icon:active {
+  background-color: var(--item-selected);
+  border-color: var(--column-accent-hover);
+  color: var(--column-accent-hover);
+}
+
+.add-task-btn-icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar */
+.tasks::-webkit-scrollbar { width: 6px; }
+.tasks::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: var(--radius-2xs); }
+.tasks::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius-2xs); }
+.tasks::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* ==========================================================================
+   Phone: column chrome
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .task-column {
+    /* Feeds both the header dot and the empty-state inset below it. */
+    --column-header-dot-size: 10px;
+  }
+
+  .column-header {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  }
+
+  /* A rail column is wide enough for the longest column name on one line. */
+  .column-header h2 {
+    min-height: var(--touch-target);
+    font-size: var(--text-md);
+  }
+
+  .column-header-slot {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .add-task-btn-icon {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  .add-task-btn-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+}

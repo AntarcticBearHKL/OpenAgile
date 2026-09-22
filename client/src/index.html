@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="OpenAgile a Personal + AI-Agent Kanban Board - A fully local task management tool with no server required">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://analytics.gomogi.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://analytics.gomogi.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>OpenAgile</title>
+  <link rel="stylesheet" href="styles/index.css">
+  <!-- Kanban favicon (inline SVG data URI) -->
+  <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='3' width='6' height='18' rx='1.5' fill='%233b82f6'/%3E%3Crect x='9' y='3' width='6' height='12' rx='1.5' fill='%2360a5fa'/%3E%3Crect x='16' y='3' width='6' height='8' rx='1.5' fill='%2393c5fd'/%3E%3C/svg%3E">
+  <script defer src="https://analytics.gomogi.com/script.js" data-website-id="4ebd005d-0f3f-4956-8100-a78c3d89dda8"></script>
+</head>
+<body>
+  <!-- Skip link for accessibility -->
+  <a href="#board-container" class="sr-only">Skip to board</a>
+
+  <header>
+    <nav class="controls" role="toolbar" aria-label="Board controls">
+      <div class="brand">
+        <span class="brand-favicon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+            <rect x="2" y="3" width="6" height="18" rx="1.5" fill="#3b82f6"></rect>
+            <rect x="9" y="3" width="6" height="12" rx="1.5" fill="#60a5fa"></rect>
+            <rect x="16" y="3" width="6" height="8" rx="1.5" fill="#93c5fd"></rect>
+          </svg>
+        </span>
+        <span id="brand-text" class="brand-text">OpenAgile</span>
+        <button id="skills-btn" class="control-btn brand-skills-btn" type="button" aria-haspopup="dialog" title="Skills">
+          <span data-lucide="list-checks" aria-hidden="true"></span>
+          <span>Skills</span>
+        </button>
+      </div>
+
+      <div class="toolbar-quick-actions">
+        <button id="search-btn" class="control-btn icon-only" type="button" aria-label="Search tasks" title="Search (Ctrl+K)">
+          <span data-lucide="search" aria-hidden="true"></span>
+        </button>
+
+        <button id="theme-toggle-btn" class="control-btn icon-only" type="button" aria-pressed="false" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <span data-lucide="moon" aria-hidden="true"></span>
+        </button>
+
+        <button id="settings-btn" class="control-btn icon-only" type="button" aria-haspopup="dialog" aria-label="Settings" title="Settings">
+          <span data-lucide="sliders-horizontal" aria-hidden="true"></span>
+        </button>
+      </div>
+      
+      <input type="file" id="import-file" accept="application/json" class="sr-only" aria-label="Import board file">
+    </nav>
+  </header>
+
+  <div class="app-body">
+    <aside class="board-sidebar" aria-label="Groups">
+      <div class="sidebar-heading">
+        <button id="groups-toggle-btn" class="sidebar-heading-toggle" type="button" aria-expanded="false" aria-controls="board-list">
+          <span>Groups</span>
+        </button>
+        <button id="add-group-btn" class="icon-btn" type="button" aria-label="New group" title="New group">
+          <span data-lucide="plus" aria-hidden="true"></span>
+        </button>
+      </div>
+      <ul id="board-list" class="board-list"></ul>
+    </aside>
+
+    <div class="board-main">
+      <main id="board-container" class="board-container" aria-label="Kanban board">
+        <!-- Columns rendered dynamically by JavaScript -->
+      </main>
+    </div>
+  </div>
+
+  <!-- Task Modal -->
+  <div id="task-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content">
+      <header class="modal-header-row">
+        <div class="task-modal-heading">
+          <span id="task-modal-key" class="task-modal-key hidden"></span>
+          <h3 id="task-modal-title">Add New Task</h3>
+        </div>
+        <div class="modal-header-actions">
+          <button id="task-fullpage-btn" type="button" class="btn-small hidden" aria-pressed="false" title="Open in full page">
+            <span data-lucide="maximize-2" aria-hidden="true"></span>
+          </button>
+          <button id="task-close-btn" type="button" class="icon-btn" aria-label="Close task editor" title="Close">
+            <span data-lucide="x" aria-hidden="true"></span>
+          </button>
+        </div>
+      </header>
+
+      <div id="task-lock-notice" class="task-lock-notice hidden" role="status"></div>
+
+      <form id="task-form" novalidate>
+        <div class="form-group" id="task-title-group">
+          <label for="task-title" id="task-title-label">Title <span aria-hidden="true">*</span></label>
+          <input id="task-title" type="text" required placeholder="Enter task title..." aria-required="true">
+          <div id="task-title-view" class="task-readonly-block hidden">
+            <span class="task-readonly-label">Title</span>
+            <h4 id="task-title-view-text" class="task-readonly-title"></h4>
+          </div>
+        </div>
+        <div class="form-group" id="task-description-group">
+          <label for="task-description" id="task-description-label">Description</label>
+          <textarea id="task-description" rows="3" placeholder="Enter task description..."></textarea>
+          <div id="task-description-view" class="task-readonly-block hidden">
+            <span class="task-readonly-label">Description</span>
+            <div id="task-description-view-text" class="task-readonly-description"></div>
+          </div>
+          <div id="task-description-links" class="description-links" hidden aria-label="Links in description"></div>
+        </div>
+        <fieldset class="form-group" id="task-key-points-fieldset">
+          <legend>
+            <span data-lucide="list-checks" aria-hidden="true"></span>
+            Notes to the agent
+          </legend>
+          <p class="form-help" id="task-key-points-help">The human writes notes here. The agent reads them and folds them into the description before starting work.</p>
+          <ul id="task-key-points-list" class="key-points-list" role="list" aria-label="Notes to the agent"></ul>
+          <div class="task-key-point-add-row" id="task-key-point-add-row">
+            <input
+              type="text"
+              id="task-key-point-input"
+              placeholder="Add a note and press Enter…"
+              autocomplete="off"
+              maxlength="200"
+              aria-label="New note"
+            >
+            <span class="key-point-enter-hint" aria-hidden="true">Enter</span>
+          </div>
+          <p class="task-notes-view-notice hidden" id="task-notes-view-notice" role="status">Notes are read-only while a task is In Progress. The agent hands the task back before notes can be added.</p>
+        </fieldset>
+        <div class="form-actions">
+          <button type="button" id="cancel-task-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="task-submit-btn" class="btn btn-primary">Add Task</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <!-- Boards Modal -->
+  <div id="boards-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="boards-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content">
+      <header class="modal-header-row">
+        <h3 id="boards-modal-title">Manage Boards</h3>
+        <button id="boards-close-modal-btn" type="button" class="icon-btn" aria-label="Close" title="Close">
+          <span data-lucide="x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <div id="boards-list" aria-label="Boards list"></div>
+      <div class="form-actions">
+        <button id="add-board-btn" type="button" class="btn btn-primary">
+          <span data-lucide="kanban" aria-hidden="true"></span>
+          <span> Create Board</span>
+        </button>
+        <button id="boards-import-btn" type="button" class="btn btn-secondary">
+          <span data-lucide="upload" aria-hidden="true"></span>
+          <span> Import Board</span>
+        </button>
+        <button type="button" id="boards-close-btn" class="btn btn-secondary">Close</button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Skills Modal -->
+  <div id="skills-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="skills-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content skills-modal-content">
+      <header class="modal-header-row">
+        <h3 id="skills-modal-title">Skills</h3>
+        <button id="skills-close-modal-btn" type="button" class="icon-btn" aria-label="Close skills editor" title="Close">
+          <span data-lucide="x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <div class="skills-layout">
+        <aside class="skills-list-pane" aria-label="Skills">
+          <div class="skills-list-header">
+            <span class="skills-list-heading">Skills</span>
+            <button id="skill-add-btn" type="button" class="icon-btn" aria-label="New skill" title="New skill">
+              <span data-lucide="plus" aria-hidden="true"></span>
+            </button>
+          </div>
+          <ul id="skills-list" class="skills-list" role="listbox" aria-label="Skills"></ul>
+        </aside>
+        <section class="skills-editor-pane" aria-label="Skill editor">
+          <div id="skills-empty-state" class="skills-empty-state">
+            <p class="skills-empty-title">No skills yet</p>
+            <p class="skills-empty-hint">Skills are plain-text usage guides the AI agent reads through MCP. Add one to describe how you want this board used.</p>
+          </div>
+          <form id="skill-form" class="skills-editor hidden" novalidate>
+            <div class="form-group">
+              <label for="skill-name">Name</label>
+              <input id="skill-name" type="text" maxlength="80" autocomplete="off" placeholder="Skill name">
+            </div>
+            <div class="form-group">
+              <label for="skill-description">Description</label>
+              <input id="skill-description" type="text" maxlength="200" autocomplete="off" placeholder="Short description shown in the list">
+            </div>
+            <div class="form-group skills-content-group">
+              <label for="skill-content">Usage guide</label>
+              <textarea id="skill-content" spellcheck="false" placeholder="Write the instructions the AI agent should follow…"></textarea>
+            </div>
+            <div class="skills-editor-actions">
+              <button id="skill-delete-btn" type="button" class="btn skills-delete-btn" title="Delete skill" aria-label="Delete skill">Delete</button>
+              <button id="skill-save-btn" type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </article>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content">
+      <header class="modal-header-row">
+        <h3 id="settings-modal-title">Settings</h3>
+        <button id="settings-close-modal-btn" type="button" class="icon-btn" aria-label="Close" title="Close">
+          <span data-lucide="x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <form id="settings-form" novalidate>
+        <section class="settings-section" aria-labelledby="settings-board-title">
+          <div class="settings-section-header">
+            <h4 id="settings-board-title">Board settings</h4>
+            <p class="form-help">These settings apply only to the current board.</p>
+          </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input id="settings-show-change-date" type="checkbox">
+              Show updated date/time
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="settings-locale">Locale</label>
+            <select id="settings-locale" aria-label="Select locale"></select>
+          </div>
+        </section>
+        <div class="form-actions">
+          <button type="button" id="settings-close-btn" class="btn btn-primary">Close</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <!-- Iteration Details Modal -->
+  <div id="board-rename-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="board-rename-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content">
+      <header class="modal-header-row">
+        <h3 id="board-rename-modal-title">Edit Iteration</h3>
+        <button id="board-rename-close-btn" type="button" class="icon-btn" aria-label="Close" title="Close">
+          <span data-lucide="x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <form id="board-rename-form" novalidate>
+        <div class="task-form-grid">
+          <div class="form-group">
+            <label for="board-start-date">Start date</label>
+            <input type="date" id="board-start-date">
+          </div>
+          <div class="form-group">
+            <label for="board-end-date">End date</label>
+            <input type="date" id="board-end-date">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="board-goal">Iteration goal</label>
+          <input type="text" id="board-goal" maxlength="200" autocomplete="off" placeholder="Optional goal for this iteration">
+        </div>
+        <div class="form-actions">
+          <button type="button" id="cancel-board-rename-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="board-rename-submit-btn" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <!-- Board Create Modal -->
+  <div id="board-create-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="board-create-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content">
+      <header class="modal-header-row">
+        <h3 id="board-create-modal-title">Create New Board</h3>
+        <button id="board-create-close-btn" type="button" class="icon-btn" aria-label="Close" title="Close">
+          <span data-lucide="x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <form id="board-create-form" novalidate>
+        <p class="form-help">The iteration is numbered automatically inside its group.</p>
+        <div class="form-actions">
+          <button type="button" id="cancel-board-create-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="board-create-submit-btn" class="btn btn-primary">Create Board</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <!-- Confirm / Alert Modal -->
+  <div id="dialog-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dialog-modal-title">
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="modal-content">
+      <header class="modal-header-row">
+        <h3 id="dialog-modal-title">Confirm</h3>
+        <button id="dialog-close-btn" type="button" class="icon-btn" aria-label="Close" title="Close">
+          <span data-lucide="x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <p id="dialog-modal-message"></p>
+      <input id="dialog-modal-input" type="text" autocomplete="off" hidden aria-label="Dialog input">
+      <div class="form-actions">
+        <button type="button" id="dialog-cancel-btn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="dialog-confirm-btn" class="btn btn-primary">OK</button>
+      </div>
+    </article>
+  </div>
+
+<script type="module" src="kanban.js"></script>
+</body>
+</html>

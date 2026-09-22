@@ -1,0 +1,34 @@
+/* ==========================================================================
+   Personal Kanban – CSS Entry Point
+   Import order matters: tokens → base → utilities → layout → components → responsive
+   ========================================================================== */
+
+/* Fonts first — the @font-face rules must be registered before base styles use them */
+@import './fonts.css';
+
+/* Tokens & Base */
+@import './tokens.css';
+@import './base.css';
+@import './utilities.css';
+
+/* Layout */
+@import './layout.css';
+
+/* Components */
+@import './components/buttons.css';
+@import './components/icons.css';
+@import './components/column.css';
+@import './components/card.css';
+@import './components/forms.css';
+@import './components/modals.css';
+@import './components/skills.css';
+@import './components/spotlight.css';
+@import './components/accordion.css';
+@import './components/boards.css';
+@import './components/folder-sync.css';
+
+/* Responsive overrides (must come last) */
+@import './responsive.css';
+
+/* Glass fallback — must stay last so it wins over the component surfaces */
+@import './glass.css';

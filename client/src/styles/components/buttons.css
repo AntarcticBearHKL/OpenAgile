@@ -1,0 +1,172 @@
+/* ==========================================================================
+   Button Components
+   ========================================================================== */
+
+/* Base button */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background-color var(--transition-normal), transform var(--transition-fast);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Primary button */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  align-items: center;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+}
+
+.btn-secondary:hover {
+  background-color: var(--btn-secondary-hover-bg);
+}
+
+/* Small button */
+.btn-small {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  background-color: var(--btn-small-bg);
+  color: var(--btn-secondary-fg);
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-small:hover {
+  background-color: var(--btn-small-hover-bg);
+}
+
+.btn-small svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+/* Danger variant */
+.btn-danger {
+  color: var(--color-danger);
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-bg);
+}
+
+/* Control button (toolbar) */
+.control-btn {
+  padding: 7px var(--space-3);
+  background-color: transparent;
+  color: var(--text-subtle);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-md);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.control-btn:hover {
+  background-color: var(--item-hover);
+  color: var(--text);
+}
+
+.control-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.control-btn.icon-only {
+  padding: 7px;
+}
+
+/* Nested links used as button labels must not re-apply button chrome */
+.control-btn .control-btn {
+  padding: 0;
+  background: none;
+  color: inherit;
+}
+
+.control-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+/* Show more button (for virtualized lists) */
+.show-more-btn {
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 8px;
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-family: inherit;
+  transition: all var(--transition-normal);
+  text-align: center;
+}
+
+.show-more-btn:hover {
+  background-color: var(--btn-secondary-hover-bg);
+  border-color: var(--border);
+}
+
+.show-more-btn:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================================================
+   Phone: finger-sized controls
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .btn {
+    min-height: var(--touch-target);
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .btn-small {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+    justify-content: center;
+  }
+
+  .control-btn {
+    min-height: var(--touch-target);
+  }
+
+  .show-more-btn {
+    min-height: var(--touch-target);
+  }
+
+}

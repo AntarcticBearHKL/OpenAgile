@@ -1,0 +1,275 @@
+/* ==========================================================================
+   Task Row Components
+   ========================================================================== */
+
+@media (min-width: 601px) {
+  /* Desktop/tablet: keep the app within the viewport so columns scroll internally */
+  body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+/* One task = one dense row */
+.task {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid var(--row-divider);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  transition: background-color var(--transition-fast);
+}
+
+/* Accent stripe revealed on hover/focus — the only chrome a row gets */
+.task::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--column-accent-muted);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.task:hover,
+.task:focus-within {
+  background-color: var(--row-hover);
+}
+
+.task:hover::before,
+.task:focus-within::before {
+  opacity: 1;
+}
+
+.task-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 6px var(--space-2) 6px var(--space-3);
+}
+
+/* Task title */
+.task-title {
+  flex: 1 1 0%;
+  min-width: 0;
+  font-size: var(--text-md);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.task-title:hover {
+  color: var(--column-accent-hover);
+}
+
+/* Task actions — delete stays hidden until the row is hovered/focused */
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+  min-width: var(--board-control-size-compact);
+  min-height: var(--board-control-size-compact);
+}
+
+.task .delete-task-btn {
+  opacity: 0;
+}
+
+.task:hover .delete-task-btn,
+.task:focus-within .delete-task-btn,
+.task .delete-task-btn:focus-visible {
+  opacity: 1;
+}
+
+.task .delete-task-btn.is-armed {
+  opacity: 1;
+  background-color: var(--color-danger);
+  color: var(--color-on-danger);
+  font-weight: 700;
+}
+
+/* Touch devices have no hover: the delete control has to be part of the row. */
+@media (hover: none), (pointer: coarse) {
+  .task .delete-task-btn {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   Phone: card ergonomics
+   Rows are the primary tap target, so they get finger height, a two-line
+   title, and a delete control that is visible without hover.
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .task-row {
+    min-height: calc(var(--touch-target) + var(--space-1));
+    padding: var(--space-3) var(--space-2) var(--space-3) var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .task-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    font-size: var(--text-base);
+    line-height: 1.35;
+  }
+
+  .task-description-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    padding: 0 var(--space-2) var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .task-key-points {
+    padding: 0 var(--space-2) var(--space-2) var(--space-3);
+    gap: var(--space-1);
+  }
+
+  .task-key-point {
+    font-size: var(--text-sm);
+  }
+
+  .task-signal {
+    margin: 0 var(--space-2) var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+  }
+
+  .task-signal svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .task:active {
+    background-color: var(--item-selected);
+  }
+
+  .task:active::before {
+    opacity: 1;
+  }
+
+  .task .delete-task-btn {
+    width: var(--touch-target);
+    height: var(--touch-target);
+    opacity: 1;
+  }
+
+  .task .delete-task-btn svg {
+    stroke: var(--text-muted);
+  }
+
+  .task .delete-task-btn:hover svg,
+  .task .delete-task-btn:active svg {
+    stroke: var(--color-danger);
+  }
+}
+
+/* ==========================================================================
+   Card body: description, key points, human-action signals
+   ========================================================================== */
+
+.task-description-preview {
+  display: block;
+  padding: 0 var(--space-2) 6px var(--space-3);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-key-points {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-2) 6px var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-key-point {
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.task-key-point::before {
+  content: "•";
+  margin-right: 6px;
+  color: var(--column-accent-muted);
+}
+
+.task-signal {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 var(--space-2) 6px var(--space-3);
+  padding: 1px 6px 1px 4px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  background-color: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.task-signal svg {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+}
+
+.task-signal--digest {
+  color: var(--signal-digest-fg);
+  background-color: var(--signal-digest-bg);
+  border-color: var(--signal-digest-border);
+}
+
+.task-signal--rework {
+  color: var(--signal-rework-fg);
+  background-color: var(--signal-rework-bg);
+  border-color: var(--signal-rework-border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .task-signal {
+    animation: task-signal-appear var(--transition-normal);
+  }
+}
+
+@keyframes task-signal-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
