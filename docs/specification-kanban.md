@@ -19,10 +19,8 @@ This file is the entrypoint to the canonical application specification. Detailed
 
 ## Update Policy
 
-- Every code change that adds, changes, or removes product behavior must update `CHANGELOG.md` in the same work session.
 - Every code change that affects functionality, data shape, storage, UI behavior, or workflow rules must also update the relevant file in `docs/spec/` in the same work session.
 - Update this index file when the spec structure, ownership map, or update process changes.
-- If contributor workflow or module structure changes, also update `CLAUDE.md`.
 
 ## Ownership Map
 
@@ -43,7 +41,7 @@ Use this mapping to decide which spec files to update alongside code changes.
 - `src/modules/theme.js`, `src/modules/icons.js` -> `docs/spec/overview.md`, `docs/spec/board-ui.md`
 - `src/modules/activity-log.js`, `src/modules/activity-log-ui.js`, `src/modules/activity.js` -> `docs/spec/audit-trail.md`
 - `src/modules/folder-sync.js`, `src/modules/folder-sync-ui.js` -> `docs/spec/sync.md`
-- `tests/**`, `playwright.config.js`, `vitest*.config.js` -> `docs/spec/testing.md` and `docs/testing-strategy.md` when strategy or naming conventions change
+- `tests/**`, `vitest*.config.js` -> `docs/spec/testing.md` and `docs/testing-strategy.md` when strategy or naming conventions change
 
 ## Contributor Workflow
 
@@ -51,10 +49,8 @@ When making a change:
 
 1. Identify the affected code area.
 2. Update the matching `docs/spec/*.md` file or files.
-3. Update `CHANGELOG.md` under `Unreleased`.
-4. Update this index only if the spec structure, ownership map, or process changed.
+3. Update this index only if the spec structure, ownership map, or process changed.
 
 ## Related Docs
 
 - `docs/testing-strategy.md` - deeper testing architecture and naming conventions
-- `CLAUDE.md` - contributor workflow and repository guidance

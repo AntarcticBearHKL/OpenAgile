@@ -1,8 +1,5 @@
 # OpenAgile — Agent & Developer Guide
 
-> **This file is the source of truth for `CLAUDE.md` and `GEMINI.md`** (both are symlinks here).
-> Edit `AGENTS.md` directly; the symlinks pick up changes automatically.
-
 OpenAgile is a local-first Kanban board that runs entirely in the browser. No server is required for
 the core app. All data persists in **IndexedDB** (`openagile-db`).
 
@@ -39,7 +36,6 @@ docs/
   spec/             Feature specifications
   user/             User-facing documentation (guides, FAQs, etc.)
 CONTEXT.md          Domain model — read before working on any feature
-CHANGELOG.md        Keep updated under [Unreleased] as you work
 ```
 
 ---
