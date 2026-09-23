@@ -31,11 +31,11 @@
 - A waiter does not poll `list_events`: `wait_for_event` takes the last `seq` the caller has seen and resolves when a later event is appended, optionally filtered by `type` or `boardId`, so a worker can wait for change on its own board. No matching event within the bounded `timeoutMs` (ceiling 30000 ms) resolves cleanly with `timedOut: true`; the append listener is registered per call and removed when the wait settles, so repeated waits leave nothing behind
 - A claim (`claim_task`) starts a five-minute sync window; any update that bumps `changeDate` (a description edit, a digest, a re-claim, or `heartbeat_task`) restarts it, and so does entering In Progress: the sweep measures from the later of `changeDate` and the time the task entered its current column (`columnHistory`), so a move can never leave a just-started task looking stuck
 - `heartbeat_task` is the low-cost sync for an agent that is still working but has nothing to change: it writes only `changeDate` and leaves the description, the notes, the digests, the column and every other field untouched. It is allowed only for a claimed task in In Progress — the only state the watchdog measures — and refused everywhere else
-- The harness sweeps every 30 seconds and moves a claimed In Progress task whose last sync is older than five minutes to Blocked, exactly as an agent move does: it emits `task.moved` with the column ordering (recorded in `columnHistory`) and a `task.updated` that carries the blocked fields
+- The server sweeps every 30 seconds and moves a claimed In Progress task whose last sync is older than five minutes to Blocked, exactly as an agent move does: it emits `task.moved` with the column ordering (recorded in `columnHistory`) and a `task.updated` that carries the blocked fields
 - The server sets `blockedAt` and `blockedReason` to `Auto-blocked: no agent sync for over 5 minutes.`
 - The sweep keys off the fixed In Progress and Blocked column ids, never column names, and only touches tasks that carry a claim marker (`claimedBy` or `claimedAt`); unclaimed, fresh, and already-blocked tasks are left alone
 - An agent that moves the card to Finished or Blocked itself stops the clock before the watchdog ever sees the task
-- The threshold is `CLAIM_STALE_MS` (five minutes) in `harness/src/store.mjs`; the interval is 30 seconds, started once at server boot
+- The threshold is `CLAIM_STALE_MS` (five minutes) in `mcp/src/agile_mcp/store.py`; the interval is 30 seconds in `mcp/src/agile_mcp/app.py`, started once at server boot
 
 ## Card Display
 

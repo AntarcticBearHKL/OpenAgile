@@ -14,7 +14,7 @@ OpenAgile is a local-first Kanban board shared by one human and any number of AI
 ## Connect the MCP
 
 - The MCP is a **Streamable HTTP** server. Its default endpoint is `http://127.0.0.1:8787/mcp`. Configure your MCP client with that URL; OpenAgile does not prescribe a client-specific shell command.
-- The MCP is a standalone local server (Python, `mcp/`); it does not serve the web app. When the app is deployed on a static host there is **no MCP on that host** — run the MCP server locally to use one.
+- The MCP runs inside the local harness that also serves the web app. When the app is deployed on a static host there is **no MCP on that host** — run the harness locally to use one.
 - After connecting, call `list_groups` and then re-fetch `GET <mcp-origin>/skill/openagile.md` (optionally `?group=<name>`) to get the contextualised document.
 - Machine-readable companion, same origin as this file: `./agent.json`.
 

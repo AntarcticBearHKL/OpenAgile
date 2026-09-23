@@ -1,16 +1,16 @@
-// Bridge to the OpenAgile harness server (same origin, same port as the MCP
-// endpoint). The browser stays local-first for instant UI; this module keeps it
-// in step with the server's authoritative event log:
+// Bridge to the local OpenAgile server (the MCP server at the configured base
+// URL). The browser stays local-first for instant UI; this module keeps it in
+// step with the server's authoritative event log:
 //
 //   • server → browser : SSE /api/stream, applied through EVENT_EMITTED so the
 //                        read-model projector + reducer update the board live.
 //   • browser → server : local domain events are POSTed to /api/events (skipping
 //                        events that came from the server, which prevents loops).
 //
-// Safe no-op when the app is served without the harness: the /api/harness probe
-// fails and nothing connects.
+// Safe no-op when the server is unreachable: the /api/harness probe fails and
+// nothing connects.
 
-import { apiUrl } from './app-config.js';
+import { apiFetch, apiUrlWithToken } from './app-config.js';
 import { emit, on, EVENT_EMITTED } from './events.js';
 import { NO_BOARDS_KEY } from './constants.js';
 import { observeRemote } from './event-sourcing/hlc.js';
@@ -50,13 +50,13 @@ const pendingForwards = [];
 let retryTimer = null;
 
 function postEvent(event) {
-  return fetch(apiUrl(`/api/events?clientId=${encodeURIComponent(clientId)}`), {
+  return apiFetch(`/api/events?clientId=${encodeURIComponent(clientId)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(event),
     keepalive: true
   }).then((res) => {
-    if (!res.ok) throw new Error(`harness responded ${res.status}`);
+    if (!res.ok) throw new Error(`server responded ${res.status}`);
   });
 }
 
@@ -99,15 +99,15 @@ on(EVENT_EMITTED, (e) => {
   forward(event);
 });
 
-async function getJson(url) {
-  const res = await fetch(url, { headers: { accept: 'application/json' } });
-  if (!res.ok) throw new Error(`${url} -> ${res.status}`);
+async function getJson(path) {
+  const res = await apiFetch(path, { headers: { accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`);
   return res.json();
 }
 
 async function boot() {
   let info;
-  try { info = await getJson(apiUrl('/api/harness')); } catch { return; }
+  try { info = await getJson('/api/harness'); } catch { return; }
   if (!info?.harness) return;
 
   try {
@@ -116,21 +116,19 @@ async function boot() {
   } catch { /* ignore */ }
 
   const activeBoardId = getActiveBoardId();
-  const snapshotUrl = apiUrl(
-    activeBoardId
-      ? `/api/snapshot?boardId=${encodeURIComponent(activeBoardId)}`
-      : '/api/snapshot'
-  );
+  const snapshotPath = activeBoardId
+    ? `/api/snapshot?boardId=${encodeURIComponent(activeBoardId)}`
+    : '/api/snapshot';
 
   // Snapshot first (idempotent hydration), then tail strictly after snapshot.seq
   // so there is no replay gap and no duplicate application. This avoids full-log
   // replay, which is unsafe for non-idempotent events.
   try {
-    const snapshot = await getJson(snapshotUrl);
+    const snapshot = await getJson(snapshotPath);
     if (Number.isFinite(snapshot?.seq)) {
       const serverHasBoard = Array.isArray(snapshot.state?.boards) && snapshot.state.boards.length > 0;
       const hydrateKey = activeBoardId || snapshot.boardId || DEFAULT_BOARD_ID;
-      // A stored seq ahead of the server means the harness store was reset: new epoch.
+      // A stored seq ahead of the server means the server store was reset: new epoch.
       if (lastSeq > snapshot.seq) resetSeq();
       if (serverHasBoard && (lastSeq === 0 || snapshot.seq > lastSeq)) {
         hydrateFromSnapshotState(hydrateKey, snapshot.state);
@@ -150,7 +148,7 @@ async function boot() {
 function openStream() {
   if (source) return;
   try {
-    source = new EventSource(apiUrl(`/api/stream?since=${lastSeq}&clientId=${encodeURIComponent(clientId)}`));
+    source = new EventSource(apiUrlWithToken(`/api/stream?since=${lastSeq}&clientId=${encodeURIComponent(clientId)}`));
   } catch { return; }
 
   source.addEventListener('groups', (e) => {

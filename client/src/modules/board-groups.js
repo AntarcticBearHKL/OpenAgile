@@ -1,4 +1,4 @@
-import { apiUrl } from './app-config.js';
+import { apiFetch } from './app-config.js';
 import { generateUUID, readLocalJson as readJson } from './utils.js';
 import { scheduleDomainEvent } from './event-sourcing/emitter.js';
 import { readModelProjector } from './storage-projector.js';
@@ -10,7 +10,6 @@ export const UNTITLED_GROUP_NAME = 'Untitled group';
 
 const GROUPS_MIGRATED_KEY = 'openagile:groupsMigrated';
 const ITERATION_NAME_PREFIX = 'Iteration';
-const GROUPS_API = apiUrl('/api/groups');
 
 function markMigrated() {
   try { localStorage.setItem(GROUPS_MIGRATED_KEY, '1'); } catch { /* ignore */ }
@@ -299,7 +298,7 @@ export function initGroupSync() {
 
   ensureGroupsReady();
 
-  fetch(GROUPS_API, { headers: { accept: 'application/json' } })
+  apiFetch('/api/groups', { headers: { accept: 'application/json' } })
     .then((res) => (res.ok ? res.json() : null))
     .then((state) => {
       if (!state) return;

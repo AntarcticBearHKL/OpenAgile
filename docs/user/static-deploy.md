@@ -55,34 +55,50 @@ absent they fail and the app continues as a normal offline board.
 ## Honest limitation: automatic folder sync
 
 Automatic page ↔ `.agileboard/` folder sync (the File System Access API) requires
-a **desktop Chromium browser** (Chrome/Edge) with the local MCP running on the
-**same machine**. Firefox and Safari get the board and JSON export/import, but
-not automatic sync. A public static host never provides the MCP: run the harness
-locally alongside the browser to use one.
+a **desktop Chromium browser** (Chrome/Edge) with the local MCP server running on
+the **same machine**. Firefox and Safari get the board and JSON export/import, but
+not automatic sync. A public static host never provides the MCP: run the local
+Python server (`cd mcp && uv run agile-mcp`) alongside the browser to use one.
 
-## Pointing the app at a local service
+## Pointing the app at the local server
 
-By default every `/api/*` call goes to the same origin the page was served from.
-To point the app at a local service instead, provide the base URL through any of
+The deployed client defaults to the local server at `http://127.0.0.1:8787` and
+sends the access token as `Authorization: Bearer` (the SSE stream cannot set
+headers, so it uses `?token=`). Override the base URL and token through any of
 these, highest priority first:
 
-1. `window.__OPENAGILE__ = { apiBase: 'http://127.0.0.1:8787' }`
-2. `<meta name="openagile-api-base" content="http://127.0.0.1:8787">`
-3. `localStorage.setItem('openagile:apiBase', 'http://127.0.0.1:8787')`
+1. `window.__OPENAGILE__ = { apiBase: 'http://127.0.0.1:8787', apiToken: '<token>' }`
+2. `<meta name="openagile-api-base" content="http://127.0.0.1:8787">` and
+   `<meta name="openagile-api-token" content="<token>">`
+3. `localStorage.setItem('openagile:apiBase', 'http://127.0.0.1:8787')` and
+   `localStorage.setItem('openagile:apiToken', '<token>')`
 
-Only `http:`/`https:` values are accepted; anything else falls back to same
-origin.
+Only `http:`/`https:` base values are accepted; anything else falls back to the
+default loopback origin. The token is `OPENAGILE_TOKEN` on the server — it is
+printed on first start when unset.
 
-## CSP if loopback is enabled later
+## Browser caveats for loopback
 
-The loopback transport (a browser calling `http://127.0.0.1:8787` directly) is
-deferred. The current CSP `connect-src` in the HTML entry point is:
+The deployed page and the local server are different origins, so the browser
+enforces extra rules:
+
+- **Chrome / Edge** show a *Local Network Access* permission prompt the first
+  time a public page reaches `127.0.0.1`; accept it. The server answers the
+  preflight with `Access-Control-Allow-Private-Network: true`.
+- **Safari** blocks requests from a public origin to loopback entirely and cannot
+  be used with the deployed client + local server combination.
+- Add the deployed origin to the server's `OPENAGILE_ORIGINS` allowlist, e.g.
+  `OPENAGILE_ORIGINS=https://my-app.pages.dev`.
+
+## CSP
+
+The client's HTML entry point (`client/src/index.html`) allows the loopback
+origin in `connect-src`, so the browser does not block the probe or the SSE
+stream:
 
 ```
-connect-src 'self' https://analytics.gomogi.com
+connect-src 'self' http://127.0.0.1:8787 https://analytics.gomogi.com
 ```
 
-If loopback is enabled, add the loopback origin to `connect-src` in
-`client/src/index.html`
-— for example `http://127.0.0.1:8787` — otherwise the browser blocks the probe
-and the SSE stream. No `http:` or loopback entry belongs there until then.
+If you point the client at a different origin, add that origin to `connect-src`
+as well.

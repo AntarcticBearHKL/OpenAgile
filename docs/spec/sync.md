@@ -33,7 +33,7 @@ The browser owns exactly two files and never touches the rest of the layout:
 | `events/<writerId>.ndjson` | each writer | append-only, one compact JSON domain event per line |
 | `cursors/<writerId>.json` | each reader | `{ [writerId]: byteOffset }` per consumed shard |
 
-The MCP (harness) owns `manifest.json`, `state.json`, `snapshot.json`, the advisory `lock` and
+The MCP server owns `manifest.json`, `state.json`, `snapshot.json`, the advisory `lock` and
 `cursors/mcp.json`, and reads the browser shards with the same byte-cursor rules.
 
 `writerId` is `browser-<sessionUUID>`: one shard per tab, generated at link time and never

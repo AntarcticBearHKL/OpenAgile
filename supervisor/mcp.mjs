@@ -1,4 +1,4 @@
-// Streamable HTTP MCP client for the OpenAgile harness.
+// Streamable HTTP MCP client for the OpenAgile MCP server.
 //
 // The protocol is deliberately small and a little unusual:
 //   • initialize -> read the `mcp-session-id` response header -> notifications/initialized
@@ -12,7 +12,7 @@
 const PROTOCOL_VERSION = '2025-06-18';
 const CLIENT_VERSION = '1.0.0';
 
-// The harness answers a request whose session it no longer knows with either
+// The server answers a request whose session it no longer knows with either
 // { code:-32000, message:'Bad Request: Mcp-Session-Id required' } (no header) or
 // { code:-32001, message:'Session not found' } (stale header). Both mean the same
 // thing to a caller: re-initialize and retry once.
@@ -55,8 +55,10 @@ async function parseStreamableResponse(res) {
   return JSON.parse(raw);
 }
 
-export function createMcpClient({ url, clientName = 'openagile-supervisor' } = {}) {
+export function createMcpClient({ url, clientName = 'openagile-supervisor', token = '' } = {}) {
   if (!url || typeof url !== 'string') throw new Error('createMcpClient requires a url');
+
+  const auth = typeof token === 'string' && token.trim() ? { authorization: `Bearer ${token.trim()}` } : {};
 
   let sessionId = null;
   let nextId = 1;
@@ -64,7 +66,8 @@ export function createMcpClient({ url, clientName = 'openagile-supervisor' } = {
   function headers() {
     const base = {
       'content-type': 'application/json',
-      accept: 'application/json, text/event-stream'
+      accept: 'application/json, text/event-stream',
+      ...auth
     };
     if (sessionId) base['mcp-session-id'] = sessionId;
     return base;
@@ -176,7 +179,7 @@ export function createMcpClient({ url, clientName = 'openagile-supervisor' } = {
     sessionId = null;
     if (!sid) return;
     try {
-      await fetch(url, { method: 'DELETE', headers: { 'mcp-session-id': sid } });
+      await fetch(url, { method: 'DELETE', headers: { ...auth, 'mcp-session-id': sid } });
     } catch {
       // best effort: the server drops the transport when the socket closes anyway
     }

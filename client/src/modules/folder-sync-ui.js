@@ -8,7 +8,7 @@
 // returns to the 'bridge' default, and events merge back with synced=true, so
 // they are never appended to this tab's shard twice. The reciprocal pause of
 // local-server has no public hook and is out of scope to edit; until a guard
-// exists there, the harness bridge may POST an event that was also written to
+// exists there, the server bridge may POST an event that was also written to
 // the shard. The MCP merges by event id, so no duplicate lands in the store;
 // this is the documented, deliberate gap.
 

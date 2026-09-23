@@ -31,6 +31,7 @@ client/             Frontend app (the main product)
     dom/            Vitest + @testing-library/dom integration tests
     mocks/          MSW API mocks shared by Vitest suites
 supervisor/         Board supervisor — drives the board with short-lived worker turns
+mcp/                Standalone Python MCP server — browser bridge, skill docs, 42 MCP tools
 docs/
   adr/              Architecture Decision Records
   spec/             Feature specifications
@@ -60,8 +61,40 @@ Run the full test suite before opening a PR.
 ## Local Server Hygiene
 
 Never start a long-lived server from a tool call. The call waits for the process to exit, so the
-agent stalls and a stray server keeps the port busy for hours. Launch detached instead
-(`harness/start-bg.ps1` / `harness/dev-bg.ps1`) or use a command that terminates on its own.
+agent stalls and a stray server keeps the port busy for hours. Launch detached instead, or use a
+command that terminates on its own.
+
+The agent-facing backend is the standalone Python MCP server in `mcp/` (it replaces the former Node
+harness). It serves the browser bridge, the `/skill/*` docs and the 42 MCP tools on
+`http://127.0.0.1:8787`, and serves no static files — the client is deployed separately.
+
+```bash
+cd mcp
+uv run agile-mcp        # binds 127.0.0.1:8787
+```
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `OPENAGILE_HOST` | `127.0.0.1` | Bind address (loopback only). |
+| `OPENAGILE_PORT` | `8787` | TCP port. |
+| `OPENAGILE_DATA_DIR` | `<cwd>/.agileboard` | Event-log directory. |
+| `OPENAGILE_TOKEN` | generated + printed | Bearer token for every route. |
+| `OPENAGILE_ORIGINS` | empty | CSV allowlist of browser origins. |
+| `OPENAGILE_AGENT_NAME` | `openagile-harness` | Default `actor.id` for tool events. |
+
+The client targets `http://127.0.0.1:8787` by default and sends the token as `Authorization: Bearer`
+(or `?token=` for SSE). Override base/token with `window.__OPENAGILE__`, the `openagile-api-base` /
+`openagile-api-token` meta tags, or the `openagile:apiBase` / `openagile:apiToken` localStorage keys.
+Point an MCP client at the same origin:
+
+```jsonc
+"openagile": {
+  "type": "remote",
+  "url": "http://127.0.0.1:8787/mcp",
+  "oauth": false,
+  "headers": { "Authorization": "Bearer <OPENAGILE_TOKEN>" }
+}
+```
 
 For a visual check, serve the build on the sandbox port and shut it down when done:
 

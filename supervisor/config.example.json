@@ -1,7 +1,8 @@
 {
   "_comment": "OpenAgile supervisor example config. Copy to supervisor/config.json and edit. Relative paths resolve against the directory you launch `node supervisor/run.mjs` from. JSON cannot hold comments, so every field is documented in _fields.",
   "_fields": {
-    "mcpUrl": "Streamable HTTP MCP endpoint of the running OpenAgile harness. Required.",
+    "mcpUrl": "Streamable HTTP MCP endpoint of the running OpenAgile MCP server, e.g. http://127.0.0.1:8787/mcp. Required.",
+    "mcpToken": "Bearer token for the MCP endpoint (OPENAGILE_TOKEN on the server). Empty when the server runs without a token. Sent as `Authorization: Bearer <token>` on every request.",
     "agentName": "Identity this supervisor writes to the board as. Used for claims and passed as `agent` on every task write. Must stay stable across restarts so leases match.",
     "boardId": "The iteration (board) to drive. Provide this, OR a groupId/groupName with createBoardIfMissing. Required if no group is configured.",
     "groupId": "Group whose latest iteration this supervisor drives when boardId is omitted.",
@@ -21,6 +22,7 @@
     "reportEvidencePattern": "Optional regular expression (case-insensitive) that the worker's report must match before the task may reach Finished. Empty (default) disables the check. Use it to demand an evidence line, a command transcript, etc."
   },
   "mcpUrl": "http://127.0.0.1:8787/mcp",
+  "mcpToken": "",
   "agentName": "my-supervisor",
   "boardId": "",
   "groupId": "",

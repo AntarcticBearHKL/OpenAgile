@@ -4,7 +4,7 @@ This project uses a lean three-layer test stack designed for a pure JavaScript V
 
 - `Vitest` for fast unit tests
 - `Vitest` + `jsdom` + `@testing-library/dom` for DOM integration tests
-- `node harness/test.mjs` for harness tests
+- `cd mcp && uv run pytest` for local server tests
 
 DOM integration tests mock network behavior with `MSW` from `tests/mocks/`.
 
@@ -72,7 +72,7 @@ Examples:
 - `npm test` — run unit and DOM suites in sequence
 - `npm run test:unit` — run only unit tests
 - `npm run test:dom` — run only DOM integration tests
-- `node harness/test.mjs` — run the harness tests
+- `cd mcp && uv run pytest` — run the local server tests
 - `npm run test:overview` — regenerate `tests/TEST-OVERVIEW.md` from the test source
 
 ## What Goes Where

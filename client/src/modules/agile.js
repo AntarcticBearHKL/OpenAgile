@@ -1,6 +1,6 @@
 // Agile task-model helpers: normalizers for the extended task fields, the
 // human-readable task key generator, and the blocked/age/stale predicates.
-// The key generator mirrors the server implementation in the MCP harness so
+// The key generator mirrors the server implementation in the MCP server so
 // client-created and agent-created tasks share one numbering scheme.
 
 import { generateUUID } from './utils.js';

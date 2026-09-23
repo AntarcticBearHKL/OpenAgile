@@ -4,7 +4,7 @@
 
 - `Vitest` for unit tests in `tests/unit/`
 - `Vitest` plus `jsdom` and `@testing-library/dom` for DOM integration tests in `tests/dom/`, with `MSW` mocking API behavior from `tests/mocks/`
-- `node harness/test.mjs` for harness tests
+- `cd mcp && uv run pytest` for local server tests
 
 The canonical folder and naming conventions live in `docs/testing-strategy.md`.
 
@@ -13,7 +13,7 @@ The canonical folder and naming conventions live in `docs/testing-strategy.md`.
 - `npm test` - run unit and DOM suites in sequence
 - `npm run test:unit` - run unit tests only
 - `npm run test:dom` - run DOM integration tests only
-- `node harness/test.mjs` - run the harness tests
+- `cd mcp && uv run pytest` - run the local server tests
 - `npm run test:overview` - regenerate `tests/TEST-OVERVIEW.md` from test source
 
 ## IDB Unit Test Setup

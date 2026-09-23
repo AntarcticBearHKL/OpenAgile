@@ -6,7 +6,7 @@
 
 OpenAgile 是一个看板，核心用途是让人监督 AI 智能体。看板完全在浏览器里运行，数据保存在 IndexedDB，本身不需要服务器。
 
-智能体不需要浏览器。它们连接 `harness/` 里可选的 harness：一个很小的 Node 进程，负责提供构建好的前端、对外提供 MCP，并维护与浏览器共用的事件日志。两边接上之后，智能体移动卡片会出现在看板上，看板上的改动也会传到智能体那边。
+智能体不需要浏览器。它们连接 `mcp/` 里可选的 MCP 服务器：一个独立的 Python 进程，对外提供 MCP、浏览器事件桥和技能文档，并维护与浏览器共用的事件日志。它不提供前端静态文件——前端单独部署。两边接上之后，智能体移动卡片会出现在看板上，看板上的改动也会传到智能体那边。
 
 它适合这样的使用者：同时盯着一到几个智能体，想一眼看清每个智能体接了什么、卡在哪里、哪些需要人来拍板。
 
@@ -65,7 +65,7 @@ OpenAgile 是一个看板，核心用途是让人监督 AI 智能体。看板完
 
 `claim_task` 会记录是谁认领的、什么时候认领的，并在 assignee 为空时写入 assignee。
 
-harness 每 30 秒扫描一次。**In Progress** 里带有认领标记、并且超过五分钟没有任何更新的任务，会被移到 **Blocked**。看门狗会写入原因 `Auto-blocked: no agent sync for over 5 minutes.`，并设置 `blockedAt`，据此冻结已用时间。这次移动和智能体自己的移动完全一样：一个 `task.moved` 加上一个带阻塞字段的 `task.updated`，并记入 `columnHistory`。
+服务器每 30 秒扫描一次。**In Progress** 里带有认领标记、并且超过五分钟没有任何更新的任务，会被移到 **Blocked**。看门狗会写入原因 `Auto-blocked: no agent sync for over 5 minutes.`，并设置 `blockedAt`，据此冻结已用时间。这次移动和智能体自己的移动完全一样：一个 `task.moved` 加上一个带阻塞字段的 `task.updated`，并记入 `columnHistory`。
 
 扫描只看 **In Progress** 里带认领标记的任务。没被认领的、刚更新过的、已经在 Blocked 的任务都不会被动。卡片一旦离开 **In Progress**，这个时间窗口就不再适用；如果智能体自己把卡片移到 **Finished** 或 **Blocked**，看门狗根本看不到它。
 
@@ -80,7 +80,7 @@ harness 每 30 秒扫描一次。**In Progress** 里带有认领标记、并且�
 
 ## 安装与运行
 
-需要 Node.js 和 npm。
+前端需要 Node.js 和 npm；本地服务需要 Python 3 和 `uv`。
 
 ### 前端
 
@@ -92,30 +92,31 @@ npm run build    # 生产构建，输出到 client/dist
 npm run preview  # 本地预览生产构建
 ```
 
-### harness
+### 本地 MCP 服务器
 
-harness 是智能体连接的那个进程，同时也负责提供构建好的前端。
+`mcp/` 是智能体连接的进程，对外提供 MCP、浏览器事件桥和技能文档；它不提供前端静态文件，前端单独部署（见 [docs/user/static-deploy.md](docs/user/static-deploy.md)）。
 
 ```bash
-cd harness
-npm install
-node src/server.mjs
+cd mcp
+uv run agile-mcp
 ```
 
-依赖装一次即可，harness 只需要它自己的 `npm install`。先构建前端（在 `client/` 里执行 `npm run build`），否则 harness 没有静态文件可提供，会提示 `client/dist` 缺失。
+服务器只绑定 `127.0.0.1`。首次启动会在未设置 `OPENAGILE_TOKEN` 时生成并打印一个访问令牌。
 
-harness 读取这几个环境变量：
+服务器读取这几个环境变量：
 
 | 变量 | 默认值 | 含义 |
 |---|---|---|
-| `OPENAGILE_HOST` | `127.0.0.1` | 监听地址。 |
-| `OPENAGILE_PORT`（或 `PORT`） | `8787` | 监听端口。 |
-| `OPENAGILE_DATA_DIR` | `harness/data` | 事件日志的持久化目录。 |
+| `OPENAGILE_HOST` | `127.0.0.1` | 监听地址（仅回环）。 |
+| `OPENAGILE_PORT` | `8787` | 监听端口。 |
+| `OPENAGILE_DATA_DIR` | `<cwd>/.agileboard` | 事件日志的持久化目录。 |
+| `OPENAGILE_TOKEN` | 生成并打印 | 每个路由的 Bearer 令牌。 |
+| `OPENAGILE_ORIGINS` | 空 | 浏览器来源的白名单（精确匹配，逗号分隔）。 |
 | `OPENAGILE_AGENT_NAME` | `openagile-harness` | 工具上报的 actor id。 |
 
-启动后，前端在 `http://127.0.0.1:8787/`，MCP 在 `http://127.0.0.1:8787/mcp`。
+前端默认指向 `http://127.0.0.1:8787`，并把令牌作为 `Authorization: Bearer` 发送（SSE 无法设置请求头，改用 `?token=`）。可以用 `window.__OPENAGILE__`、`openagile-api-base` / `openagile-api-token` meta 标签，或 `openagile:apiBase` / `openagile:apiToken` 这两个 localStorage 键来覆盖。
 
-在 Windows 上，`harness/start-bg.ps1` 和 `harness/stop-bg.ps1` 可以在后台启动和停止 harness。不要在工具调用里启动常驻服务，因为调用会一直等到进程退出。
+不要在工具调用里启动常驻服务，因为调用会一直等到进程退出。
 
 ## 测试
 
@@ -128,17 +129,18 @@ npm run test:unit
 npm run test:dom
 ```
 
-harness 有独立的测试文件，在仓库根目录运行：
+本地服务器有独立的 pytest 测试：
 
 ```bash
-node harness/test.mjs
+cd mcp
+uv run pytest
 ```
 
-写作时的状态是：`npm run build` 通过，单元测试 305 个全部通过，DOM 测试 178 个全部通过，harness 测试 33 个全部通过。
+写作时的状态是：`npm run build` 通过，单元测试 292 个全部通过，DOM 测试 144 个全部通过。
 
 ## 让智能体通过 MCP 接入
 
-harness 通过 Streamable HTTP 在 `http://127.0.0.1:8787/mcp` 提供 MCP。它是 HTTP 端点，不是 stdio 命令，把 MCP 客户端指向这个地址即可。
+本地服务器通过 Streamable HTTP 在 `http://127.0.0.1:8787/mcp` 提供 MCP。它是 HTTP 端点，不是 stdio 命令，把 MCP 客户端指向这个地址即可，并在每个请求上带上 `Authorization: Bearer <OPENAGILE_TOKEN>`。
 
 用官方 SDK 的最小客户端：
 
@@ -147,13 +149,26 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 const client = new Client({ name: 'my-agent', version: '1.0.0' });
-await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:8787/mcp')));
+await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:8787/mcp'), {
+  requestInit: { headers: { Authorization: `Bearer ${process.env.OPENAGILE_TOKEN}` } }
+}));
 
 const { tools } = await client.listTools();
 console.log(tools.map((tool) => tool.name));
 ```
 
-harness 注册的工具包括：
+opencode 的远程 MCP 配置：
+
+```jsonc
+"openagile": {
+  "type": "remote",
+  "url": "http://127.0.0.1:8787/mcp",
+  "oauth": false,
+  "headers": { "Authorization": "Bearer <OPENAGILE_TOKEN>" }
+}
+```
+
+服务器注册的工具包括：
 
 - 看板与迭代：`list_boards`、`create_board`、`delete_board`、`get_board`、`list_roadmap`、`set_board_dates`。
 - 分组：`list_groups`、`create_group`、`rename_group`、`delete_group`、`assign_board_to_group`。
@@ -173,13 +188,14 @@ client/       浏览器前端（原生 JS ES 模块，用 Vite 构建）
   src/        入口（index.html）和 modules/
   tests/      unit/ 与 dom/ 两套 Vitest 测试
   dist/       生产构建产物（生成）
-harness/      Node harness：静态服务、MCP 工具、事件桥
-  src/        server.mjs、mcp-tools.mjs、store.mjs、bridge.mjs、hlc.mjs
-  test.mjs    harness 测试
-  data/       持久化的事件日志（生成）
+mcp/          独立的 Python MCP 服务器：浏览器桥、MCP 工具、技能文档
+  src/agile_mcp/   app.py、tools.py、store.py、bridge.py、hlc.py
+  tests/      pytest 测试
 docs/         规格、ADR、用户文档和计划
 scripts/      发布与规格工具
 ```
+
+持久化的事件日志默认写在仓库根的 `.agileboard/`（生成）。
 
 ## 这个产品强制执行的规则
 

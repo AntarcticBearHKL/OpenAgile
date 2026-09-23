@@ -10,9 +10,9 @@
 //   <folder>/cursors/<writerId>.json    { [writerId]: byteOffset } for every shard
 //
 // writerId is `browser-<sessionUUID>`: one shard per tab, generated at link time
-// and never persisted, so two tabs can never share a file. The harness
-// (harness/src/shards.mjs) owns manifest.json / state.json / snapshot.json /
-// lock and reads the browser shards with the same byte-cursor rules.
+// and never persisted, so two tabs can never share a file. The MCP server owns
+// manifest.json / state.json / snapshot.json / lock and reads the browser shards
+// with the same byte-cursor rules.
 //
 // Transport precedence: exactly one outbound transport runs at a time. Linking
 // selects 'folder'; unlinking returns to the 'bridge' default. While the mode is
@@ -116,7 +116,7 @@ function withShardLock(writerId, fn) {
   return run;
 }
 
-// Mirror of harness readShardFrom: only complete, parseable lines are consumed.
+// Mirror of the server readShardFrom: only complete, parseable lines are consumed.
 // An empty line, an unterminated final line, or a line that fails JSON.parse
 // stops the read without advancing the cursor. Re-reading is harmless because
 // merging dedupes by event id.

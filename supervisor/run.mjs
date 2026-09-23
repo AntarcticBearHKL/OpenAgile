@@ -83,7 +83,7 @@ async function main() {
   logger.info(`mcp    ${cfg.mcpUrl}`);
   logger.info(`journal ${cfg.journalPath}`);
 
-  const client = createMcpClient({ url: cfg.mcpUrl, clientName: cfg.agentName || 'openagile-supervisor' });
+  const client = createMcpClient({ url: cfg.mcpUrl, clientName: cfg.agentName || 'openagile-supervisor', token: cfg.mcpToken });
   const journal = openJournal({ path: cfg.journalPath });
   const supervisor = createSupervisor({ client, journal, config: cfg, logger });
 

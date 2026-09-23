@@ -1,4 +1,4 @@
-import { apiUrl } from './app-config.js';
+import { apiFetch } from './app-config.js';
 import { generateUUID, readLocalJson as readJson } from './utils.js';
 import { scheduleDomainEvent } from './event-sourcing/emitter.js';
 import { readModelProjector } from './storage-projector.js';
@@ -6,7 +6,6 @@ import { globalState } from './storage-state.js';
 
 export const SKILLS_KEY = 'openagile:skills';
 
-const SKILLS_API = apiUrl('/api/skills');
 const SKILLS_MIGRATED_KEY = 'openagile:skillsMigrated';
 
 function markMigrated() {
@@ -147,7 +146,7 @@ export function initSkillsSync() {
 
   ensureSkillsReady();
 
-  fetch(SKILLS_API, { headers: { accept: 'application/json' } })
+  apiFetch('/api/skills', { headers: { accept: 'application/json' } })
     .then((res) => (res.ok ? res.json() : null))
     .then((state) => {
       if (!state) return;
